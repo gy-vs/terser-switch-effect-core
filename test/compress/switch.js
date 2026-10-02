@@ -3205,3 +3205,131 @@ issue_1083_6: {
     }
     expect_stdout: ["definitely", "definitely"]
 }
+
+side_effectful_case: {
+    options = {
+        dead_code: true,
+        switches: true,
+    }
+    input: {
+        var c = "FAIL";
+        switch (0) {
+          case c = "PASS", 0:
+        }
+        console.log(c);
+    }
+    expect: {
+        var c = "FAIL";
+        if (0 === (c="PASS", 0));
+        console.log(c);
+    }
+    expect_stdout: "PASS"
+}
+
+side_effectful_case_sequence: {
+    options = {
+        conditionals: true,
+        dead_code: true,
+        evaluate: true,
+        sequences: true,
+        switches: true,
+    }
+    input: {
+        var log = [];
+        var count = 0;
+        function mark() {
+            log.push("mark");
+            count++;
+        }
+        function f() {
+            log.length = 0;
+            switch (1) {
+              case (mark(), 1):
+                break;
+              case 2:
+                return "two";
+              default:
+                return "other";
+            }
+            return "one";
+        }
+        function g() {
+            log.length = 0;
+            switch (2) {
+              case (mark(), 1):
+                break;
+              case 2:
+                return "two";
+              default:
+                return "other";
+            }
+            return "one";
+        }
+        function h() {
+            log.length = 0;
+            switch (3) {
+              case (mark(), 1):
+                break;
+              case 2:
+                return "two";
+              default:
+                return "other";
+            }
+            return "one";
+        }
+        console.log(f(), log.join(","), count);
+        console.log(g(), log.join(","), count);
+        console.log(h(), log.join(","), count);
+    }
+    expect: {
+        var log = [];
+        var count = 0;
+        function mark() {
+            log.push("mark"), count++;
+        }
+        function f() {
+            if (log.length = 0, 1 !== (mark(), 1)) return "other";
+            return "one";
+        }
+        function g() {
+            if (log.length = 0, 2 !== (mark(), 1)) return 2, "two";
+            return "one";
+        }
+        function h() {
+            if (log.length = 0, 3 !== (mark(), 1)) return "other";
+            return "one";
+        }
+        console.log(f(), log.join(","), count), console.log(g(), log.join(","), count), console.log(h(), log.join(","), count);
+    }
+    expect_stdout: [
+        "one mark 1",
+        "two mark 2",
+        "other mark 3",
+    ]
+}
+
+side_effect_free_case_sequence: {
+    options = {
+        dead_code: true,
+        evaluate: true,
+        side_effects: true,
+        switches: true,
+    }
+    input: {
+        var a = "FAIL";
+        switch (1) {
+          case (0, 1):
+            a = "PASS";
+            break;
+          default:
+            a = "FAIL";
+        }
+        console.log(a);
+    }
+    expect: {
+        var a = "FAIL";
+        a = "PASS";
+        console.log(a);
+    }
+    expect_stdout: "PASS"
+}
