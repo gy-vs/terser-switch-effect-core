@@ -3205,3 +3205,228 @@ issue_1083_6: {
     }
     expect_stdout: ["definitely", "definitely"]
 }
+
+duplicate_case_labels_preserve_side_effects: {
+    options = {
+        conditionals: true,
+        dead_code: true,
+        sequences: true,
+        switches: true,
+    }
+    input: {
+        function f(value) {
+            var logs = [];
+            var count = 0;
+            function mark() {
+                count++;
+                logs.push("mark" + count);
+            }
+            switch (value) {
+                case 2:
+                    return "X";
+                case 1:
+                    mark();
+                    break;
+                default:
+                    return "D:" + logs.join(",");
+                case 1:
+                    return "X";
+            }
+            return "end:" + logs.join(",");
+        }
+        console.log(f(1));
+        console.log(f(2));
+        console.log(f(9));
+    }
+    expect: {
+        function f(value) {
+            var logs = [];
+            var count = 0;
+            function mark() {
+                count++, logs.push("mark" + count);
+            }
+            switch (value) {
+                case 2:
+                    return "X";
+                case 1:
+                    mark();
+                    break;
+                default:
+                    return "D:" + logs.join(",");
+                case 1:
+                    return "X";
+            }
+            return "end:" + logs.join(",");
+        }
+        console.log(f(1)), console.log(f(2)), console.log(f(9));
+    }
+    expect_stdout: ["end:mark1", "X", "D:"]
+}
+
+duplicate_case_labels_string_number: {
+    options = {
+        conditionals: true,
+        dead_code: true,
+        sequences: true,
+        switches: true,
+    }
+    input: {
+        function f(value) {
+            var logs = [];
+            var count = 0;
+            function mark() {
+                count++;
+                logs.push("mark" + count);
+            }
+            switch (value) {
+                case "1":
+                    return "X";
+                case 1:
+                    mark();
+                    break;
+                default:
+                    return "D:" + logs.join(",");
+                case 1:
+                    return "X";
+            }
+            return "end:" + logs.join(",");
+        }
+        console.log(f(1));
+        console.log(f("1"));
+        console.log(f(9));
+    }
+    expect: {
+        function f(value) {
+            var logs = [];
+            var count = 0;
+            function mark() {
+                count++, logs.push("mark" + count);
+            }
+            switch (value) {
+                case "1":
+                    return "X";
+                case 1:
+                    mark();
+                    break;
+                default:
+                    return "D:" + logs.join(",");
+                case 1:
+                    return "X";
+            }
+            return "end:" + logs.join(",");
+        }
+        console.log(f(1)), console.log(f("1")), console.log(f(9));
+    }
+    expect_stdout: ["end:mark1", "X", "D:"]
+}
+
+fallthrough_side_effect_between_cases: {
+    options = {
+        conditionals: true,
+        dead_code: true,
+        sequences: true,
+        switches: true,
+    }
+    input: {
+        function f(value) {
+            var logs = [];
+            var count = 0;
+            function mark() {
+                count++;
+                logs.push("mark" + count);
+            }
+            switch (value) {
+                case 1:
+                    mark();
+                case 2:
+                    return "two:" + logs.join(",");
+                default:
+                    return "def:" + logs.join(",");
+            }
+        }
+        console.log(f(1));
+        console.log(f(2));
+        console.log(f(9));
+    }
+    expect: {
+        function f(value) {
+            var logs = [];
+            var count = 0;
+            function mark() {
+                count++, logs.push("mark" + count);
+            }
+            switch (value) {
+                case 1:
+                    mark();
+                case 2:
+                    return "two:" + logs.join(",");
+                default:
+                    return "def:" + logs.join(",");
+            }
+        }
+        console.log(f(1)), console.log(f(2)), console.log(f(9));
+    }
+    expect_stdout: ["two:mark1", "two:", "def:"]
+}
+
+duplicate_case_labels_multiple: {
+    options = {
+        conditionals: true,
+        dead_code: true,
+        sequences: true,
+        switches: true,
+    }
+    input: {
+        function f(value) {
+            var logs = [];
+            var count = 0;
+            function mark() {
+                count++;
+                logs.push("mark" + count);
+            }
+            switch (value) {
+                case 3:
+                    return "Z";
+                case 1:
+                    return "Z";
+                case 2:
+                    mark();
+                    break;
+                default:
+                    return "D:" + logs.join(",");
+                case 3:
+                    return "Z";
+            }
+            return "end:" + logs.join(",");
+        }
+        console.log(f(1));
+        console.log(f(2));
+        console.log(f(3));
+        console.log(f(9));
+    }
+    expect: {
+        function f(value) {
+            var logs = [];
+            var count = 0;
+            function mark() {
+                count++, logs.push("mark" + count);
+            }
+            switch (value) {
+                case 3:
+                    return "Z";
+                case 1:
+                    return "Z";
+                case 2:
+                    mark();
+                    break;
+                default:
+                    return "D:" + logs.join(",");
+                case 3:
+                    return "Z";
+            }
+            return "end:" + logs.join(",");
+        }
+        console.log(f(1)), console.log(f(2)), console.log(f(3)), console.log(f(9));
+    }
+    expect_stdout: ["Z", "end:mark1", "Z", "D:"]
+}
